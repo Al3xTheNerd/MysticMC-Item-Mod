@@ -63,4 +63,45 @@ class CrateRewardLinksTest {
         }, Style.EMPTY);
         assertEquals(List.of("■ INFINITE CYAN CONCRETE ■"), linkedText);
     }
+
+    @Test void matchesSeasonLabeledMysticCrateAnnouncement() {
+        ItemEntry primordial = item(662, "✦ Mud Cycler ✦", "Season 9: Primordial");
+        ItemEntry anotherSeason = item(1000, "✦ Mud Cycler ✦", "Season 8: Mythic");
+        String announcement = "Crates » Player Big_Schmittyus just got the ✦ Mud Cycler ✦ "
+                + "reward from the MYSTIC CRATE - PRIMORDIAL!";
+
+        CrateRewardLinks.Match match = CrateRewardLinks.match(announcement, List.of(anotherSeason, primordial));
+        assertNotNull(match);
+        assertSame(primordial, match.entry());
+        assertEquals("✦ Mud Cycler ✦", announcement.substring(match.start(), match.end()));
+    }
+
+    @Test void fallsBackToItemNameWhenCrateCannotBeIdentified() {
+        ItemEntry first = item(662, "✦ Mud Cycler ✦", "Season 9: Primordial");
+        ItemEntry second = item(1000, "✦ Mud Cycler ✦", "Season 8: Mythic");
+        String announcement = "Crates » Player Big_Schmittyus just got the ✦ Mud Cycler ✦ "
+                + "reward from the UNKNOWN CRATE!";
+
+        CrateRewardLinks.Match match = CrateRewardLinks.match(announcement, List.of(first, second));
+        assertNotNull(match);
+        assertSame(first, match.entry());
+    }
+
+    @Test void matchesBloomfallAnnouncementsWithoutCrateWord() {
+        ItemEntry guitar = item(525, "✿ Verdant Guitar ✿", "Bloomfall");
+        ItemEntry leggings = item(537, "✿ Amethyst Leggings ✿", "Bloomfall");
+        ItemEntry otherGuitar = item(999, "✿ Verdant Guitar ✿", "Other Crate");
+        String first = "Crates » Player LadyLoveless just got the ✿ Verdant Guitar ✿ reward from the BLOOMFALL!";
+        String second = "Crates » Player LadyLoveless just got the ✿ Amethyst Leggings ✿ reward from the BLOOMFALL!";
+
+        CrateRewardLinks.Match guitarMatch = CrateRewardLinks.match(first, List.of(otherGuitar, guitar, leggings));
+        assertNotNull(guitarMatch);
+        assertSame(guitar, guitarMatch.entry());
+        assertEquals("✿ Verdant Guitar ✿", first.substring(guitarMatch.start(), guitarMatch.end()));
+
+        CrateRewardLinks.Match leggingsMatch = CrateRewardLinks.match(second, List.of(guitar, leggings));
+        assertNotNull(leggingsMatch);
+        assertSame(leggings, leggingsMatch.entry());
+        assertEquals("✿ Amethyst Leggings ✿", second.substring(leggingsMatch.start(), leggingsMatch.end()));
+    }
 }

@@ -5,7 +5,7 @@ Client-side Fabric mod for Minecraft Java Edition **26.1.2**. Browse and search 
 ## Install
 
 1. Install Fabric Loader for Minecraft 26.1.2 and a compatible Fabric API.
-2. Copy `build/libs/mystic-item-browser-26.1.2-v1.0.0.jar` into the Minecraft `mods` folder.
+2. Copy `build/libs/mystic-item-browser-26.1.2-v1.0.1.jar` into the Minecraft `mods` folder.
 3. Start Minecraft. The first sync happens once, in the background. The cache lives at `config/mystic-item-browser/items-v1.json` and supports later offline browsing.
 
 Build from source with Java 25: `./gradlew build` (`.\gradlew.bat build` on Windows). The release JAR is in `build/libs/`.
@@ -25,7 +25,7 @@ Every branch push to GitHub runs `.github/workflows/release-on-push.yml`. After 
 
 The **Open MysticMC Item Browser** keybind appears in Controls; it is unassigned by default to avoid conflicting with existing controls.
 
-When a MysticMC crate announcement names an item in the catalog, hover over the reward name in chat to see its reconstructed item tooltip and lore. Click the reward name to open that item's detail screen. The rest of the server message keeps its original text and formatting. Announcements with no unique catalog match remain unchanged.
+When a MysticMC crate announcement names an item in the catalog, hover over the reward name in chat to see its reconstructed item tooltip and lore. Click the reward name to open that item's detail screen. The rest of the server message keeps its original text and formatting. Matching prefers the item name and crate together; if the crate cannot be identified, it uses the first catalog item with the same name.
 
 ## Item capture and upload
 

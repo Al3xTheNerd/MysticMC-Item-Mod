@@ -23,8 +23,10 @@ import java.util.regex.Pattern;
 /** Adds a local item preview to crate reward names in server game messages. */
 public final class CrateRewardLinks {
     private static final Pattern REWARD = Pattern.compile(
-            "^\\s*Crates\\s*[»>]\\s*.*?\\bgot\\s+the\\s+(.+?)\\s+reward\\s+from\\s+the\\s+(.+?)\\s+crate\\s*!?\\s*$",
+            "^\\s*Crates\\s*[»>]\\s*.*?\\bgot\\s+the\\s+(.+?)\\s+reward\\s+from\\s+the\\s+(.+?)\\s*[.!]?\\s*$",
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern LABELED_CRATE = Pattern.compile("(?i)^.*?\\bcrate\\b\\s*[-–—:]\\s*(.+)$");
+    private static final Pattern TRAILING_CRATE = Pattern.compile("(?i)^(.+?)\\s+crate$");
 
     private CrateRewardLinks() {}
 
@@ -44,24 +46,33 @@ public final class CrateRewardLinks {
         });
     }
 
-    /** Returns null for messages or item names that cannot be matched unambiguously. */
+    /** Prefers a crate match, then falls back to the first catalog item with that name. */
     static Match match(String text, List<ItemEntry> entries) {
         Matcher message = REWARD.matcher(text);
         if (!message.matches()) return null;
         String wanted = canonical(message.group(1));
-        String crate = canonical(message.group(2));
+        final String crateHint = canonical(crateHint(message.group(2)));
         List<ItemEntry> candidates = entries.stream()
-                .filter(entry -> !entry.miscellaneous && canonical(entry.name).equals(wanted)).toList();
-        if (candidates.size() > 1 && !crate.isEmpty()) {
+                .filter(entry -> canonical(entry.name).equals(wanted)).toList();
+        if (candidates.isEmpty()) return null;
+        ItemEntry selected = candidates.getFirst();
+        if (!crateHint.isEmpty()) {
             List<ItemEntry> inCrate = candidates.stream()
-                    .filter(entry -> !canonical(entry.groupName).isEmpty()
-                            && (canonical(entry.groupName).contains(crate)
-                            || crate.contains(canonical(entry.groupName))))
+                    .filter(entry -> !entry.miscellaneous && !canonical(entry.groupName).isEmpty()
+                            && (canonical(entry.groupName).contains(crateHint)
+                            || crateHint.contains(canonical(entry.groupName))))
                     .toList();
-            if (!inCrate.isEmpty()) candidates = inCrate;
+            if (!inCrate.isEmpty()) selected = inCrate.getFirst();
         }
-        if (candidates.size() != 1) return null;
-        return new Match(message.start(1), message.end(1), candidates.getFirst());
+        return new Match(message.start(1), message.end(1), selected);
+    }
+
+    private static String crateHint(String source) {
+        String name = source.trim();
+        Matcher labeled = LABELED_CRATE.matcher(name);
+        if (labeled.matches()) return labeled.group(1);
+        Matcher trailing = TRAILING_CRATE.matcher(name);
+        return trailing.matches() ? trailing.group(1) : name;
     }
 
     private static String canonical(String text) {
