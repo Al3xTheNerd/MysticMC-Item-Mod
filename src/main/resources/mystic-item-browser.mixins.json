@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "co.mysticmc.items.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["InventoryRedirectMixin", "AvatarRenderStateMixin", "ContainerScreenAccess", "ContainerScreenCaptureMixin", "GameRendererCaptureMixin", "ItemRenderStateAccess", "ItemLayerAccess", "SpriteSourceListAccess"],
+  "injectors": {"defaultRequire": 1}
+}

@@ -1,0 +1,53 @@
+name: Release on push
+
+on:
+  push:
+    branches:
+      - '**'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ github.sha }}
+      cancel-in-progress: false
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Build and test
+        run: bash ./gradlew build --no-daemon
+
+      - name: Publish release for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="build-${GITHUB_SHA}"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "Release $tag already exists."
+            exit 0
+          fi
+
+          jar_file=""
+          for candidate in build/libs/mystic-item-browser-*.jar; do
+            [[ "$candidate" == *-sources.jar ]] && continue
+            jar_file="$candidate"
+            break
+          done
+          test -f "$jar_file"
+
+          gh release create "$tag" "$jar_file" \
+            --target "$GITHUB_SHA" \
+            --title "Build ${GITHUB_SHA:0:7}" \
+            --notes "Automated build from ${GITHUB_REF_NAME} at ${GITHUB_SHA}." \
+            --latest=false
