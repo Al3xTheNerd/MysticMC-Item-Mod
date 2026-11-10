@@ -3,6 +3,7 @@
   "id": "mystic-item-browser",
   "version": "${version}",
   "name": "MysticMC Item Browser",
+  "license": "0BSD",
   "description": "Browse the list of Custom Items on MysticMC, and preview how they would look when worn!",
   "icon": "assets/mystic-item-browser/icon.png",
   "authors": ["AlexTheNerd"],

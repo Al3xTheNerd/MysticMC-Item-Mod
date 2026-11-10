@@ -23,6 +23,7 @@ base {
 
 tasks.named('jar') {
     archiveFileName = "mystic-item-browser-${project.minecraft_version}-v${project.mod_version}.jar"
+    from('LICENSE')
 }
 
 tasks.withType(JavaCompile).configureEach {
