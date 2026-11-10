@@ -8,7 +8,7 @@
   "authors": ["AlexTheNerd"],
   "contact": {
     "homepage": "https://items.mysticmc.co/",
-    "sources": "https://github.com"
+    "sources": "https://github.com/Al3xTheNerd/MysticMC-Item-Mod"
   },
   "environment": "client",
   "entrypoints": {"client": ["co.mysticmc.items.MysticItemBrowser"]},
