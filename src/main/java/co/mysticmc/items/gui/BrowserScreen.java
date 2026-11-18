@@ -39,6 +39,7 @@ public final class BrowserScreen extends Screen {
         search = addRenderableWidget(new EditBox(font, controlsX, 22, Math.min(190, width - 8), 18, Component.literal("Search items")));
         search.setValue(state.query);
         search.setResponder(value -> { state.query = value; updateMatches(); });
+        setInitialFocus(search);
         addRenderableWidget(Button.builder(Component.literal("Tags"), b -> minecraft.setScreen(new TagScreen(mod, state, this)))
                 .bounds(controlsX, 45, 47, 18).build());
         addRenderableWidget(Button.builder(Component.literal("Source"), b -> {

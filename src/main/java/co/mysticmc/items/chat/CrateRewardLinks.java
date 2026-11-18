@@ -20,13 +20,16 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Adds a local item preview to crate reward names in server game messages. */
+/** Adds local item previews to catalog names in crate and kill messages. */
 public final class CrateRewardLinks {
     private static final Pattern REWARD = Pattern.compile(
             "^\\s*Crates\\s*[»>]\\s*.*?\\bgot\\s+the\\s+(.+?)\\s+reward\\s+from\\s+the\\s+(.+?)\\s*[.!]?\\s*$",
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     private static final Pattern LABELED_CRATE = Pattern.compile("(?i)^.*?\\bcrate\\b\\s*[-–—:]\\s*(.+)$");
     private static final Pattern TRAILING_CRATE = Pattern.compile("(?i)^(.+?)\\s+crate$");
+    private static final Pattern KILL = Pattern.compile(
+            "(?i)\\b(?:was (?:slain|shot|killed|impaled|blown up|fireballed|pummeled|obliterated|struck|stabbed|squashed) by|killed)\\b");
+    private static final Pattern WEAPON = Pattern.compile("(?i)\\b(?:using|with|wielding)\\s+");
 
     private CrateRewardLinks() {}
 
@@ -35,7 +38,9 @@ public final class CrateRewardLinks {
             if (overlay) return message;
             ItemDatabase database = mod.repository().database();
             if (database == null) return message;
-            Match match = match(message.getString(), database.items);
+            String text = message.getString();
+            Match match = match(text, database.items);
+            if (match == null) match = matchKill(text, database.items);
             if (match == null) return message;
             ItemStack stack = mod.stacks().get(match.entry());
             if (stack.isEmpty()) return message;
@@ -65,6 +70,29 @@ public final class CrateRewardLinks {
             if (!inCrate.isEmpty()) selected = inCrate.getFirst();
         }
         return new Match(message.start(1), message.end(1), selected);
+    }
+
+    /** Finds the longest catalog name in the weapon portion of a kill message. */
+    static Match matchKill(String text, List<ItemEntry> entries) {
+        Matcher kill = KILL.matcher(text);
+        if (!kill.find()) return null;
+        Matcher weapon = WEAPON.matcher(text);
+        if (!weapon.find(kill.end())) return null;
+        int start = weapon.end();
+        Match best = null;
+        for (ItemEntry entry : entries) {
+            String name = entry.name.trim();
+            if (name.length() < 3) continue;
+            for (int at = start; at + name.length() <= text.length(); at++) {
+                if (!text.regionMatches(true, at, name, 0, name.length())) continue;
+                int end = at + name.length();
+                if (at > 0 && Character.isLetterOrDigit(text.charAt(at - 1))
+                        || end < text.length() && Character.isLetterOrDigit(text.charAt(end))) continue;
+                if (best == null || end - at > best.end() - best.start()) best = new Match(at, end, entry);
+                break;
+            }
+        }
+        return best;
     }
 
     private static String crateHint(String source) {

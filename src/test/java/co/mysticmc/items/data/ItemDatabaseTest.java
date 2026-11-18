@@ -31,6 +31,13 @@ class ItemDatabaseTest {
         assertEquals(2, state.filter(db).size());
     }
 
+    @Test void ordersCratesByIdRegardlessOfApiOrder() {
+        JsonObject root = sample().original.deepCopy();
+        root.getAsJsonArray("crates").add(JsonParser.parseString("{\"id\":10,\"CrateName\":\"Alpha\"}"));
+        root.getAsJsonArray("crates").add(JsonParser.parseString("{\"id\":2,\"CrateName\":\"Zebra\"}"));
+        assertEquals(java.util.List.of("Origins", "Zebra", "Alpha"), new ItemDatabase(root).crates);
+    }
+
     @Test void searchesPlainTextItemDescription() {
         ItemDatabase db = sample();
         BrowserState state = new BrowserState();

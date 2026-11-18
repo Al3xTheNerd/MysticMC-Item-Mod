@@ -104,4 +104,17 @@ class CrateRewardLinksTest {
         assertSame(leggings, leggingsMatch.entry());
         assertEquals("✿ Amethyst Leggings ✿", second.substring(leggingsMatch.start(), leggingsMatch.end()));
     }
+
+    @Test void linksCatalogWeaponInKillMessageWithoutMatchingPlayerNames() {
+        ItemEntry sword = item(12, "Mystic Sword", "Origins");
+        ItemEntry shortName = item(13, "Sword", "Origins");
+        String text = "Mystic Sword was slain by Alex using Mystic Sword.";
+        CrateRewardLinks.Match match = CrateRewardLinks.matchKill(text, List.of(shortName, sword));
+        assertNotNull(match);
+        assertSame(sword, match.entry());
+        assertEquals(text.lastIndexOf("Mystic Sword"), match.start());
+        assertEquals("Mystic Sword", text.substring(match.start(), match.end()));
+        assertNull(CrateRewardLinks.matchKill("Mystic Sword joined the game", List.of(sword)));
+        assertNull(CrateRewardLinks.matchKill("Mystic Sword was slain by Alex", List.of(sword)));
+    }
 }

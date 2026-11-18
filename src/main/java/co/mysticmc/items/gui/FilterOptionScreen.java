@@ -4,8 +4,10 @@ import co.mysticmc.items.MysticItemBrowser;
 import co.mysticmc.items.data.ItemDatabase;
 import co.mysticmc.items.preview.PreviewScreen;
 import java.util.List;
+import java.util.Locale;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -19,6 +21,8 @@ public final class FilterOptionScreen extends Screen {
     private final Screen parent;
     private final Kind kind;
     private List<String> options = List.of();
+    private List<String> visibleOptions = List.of();
+    private String query = "";
     private int scroll;
     private int rows;
     private int left;
@@ -31,13 +35,26 @@ public final class FilterOptionScreen extends Screen {
     @Override protected void init() {
         ItemDatabase db = mod.repository().database();
         options = db == null ? List.of() : switch (kind) {
-            case CRATE -> db.crates.stream().filter(s -> !s.isBlank()).distinct().sorted(String.CASE_INSENSITIVE_ORDER).toList();
+            case CRATE -> db.crates.stream().filter(s -> !s.isBlank()).distinct().toList();
             case GROUP -> db.groups.stream().filter(s -> !s.isBlank()).distinct().sorted(String.CASE_INSENSITIVE_ORDER).toList();
         };
         rows = Math.max(1, (height - 82) / 19);
         left = Math.max(5, (width - 300) / 2);
         addRenderableWidget(Button.builder(Component.literal("Back"), b -> onClose()).bounds(left, 27, 60, 18).build());
         addRenderableWidget(Button.builder(Component.literal("Any"), b -> select("")).bounds(left + 64, 27, 60, 18).build());
+        EditBox search = addRenderableWidget(new EditBox(font, left + 130, 27, 170, 18,
+                Component.literal(kind == Kind.CRATE ? "Search crates" : "Search groups")));
+        search.setValue(query);
+        search.setResponder(value -> { query = value; filterOptions(); });
+        setInitialFocus(search);
+        filterOptions();
+    }
+
+    private void filterOptions() {
+        String needle = query.trim().toLowerCase(Locale.ROOT);
+        visibleOptions = needle.isEmpty() ? options : options.stream()
+                .filter(option -> option.toLowerCase(Locale.ROOT).contains(needle)).toList();
+        scroll = 0;
     }
 
     private void select(String choice) {
@@ -59,12 +76,14 @@ public final class FilterOptionScreen extends Screen {
         g.centeredText(font, title, width / 2, 8, 0xFFFFFFFF);
         String current = switch (kind) { case CRATE -> state.crate; case GROUP -> state.group; };
         g.text(font, "Selected: " + (current.isEmpty() ? "Any" : current), left, 52, 0xFFCCCCFF);
-        for (int i = scroll; i < Math.min(options.size(), scroll + rows); i++) {
+        for (int i = scroll; i < Math.min(visibleOptions.size(), scroll + rows); i++) {
             int y = 70 + (i - scroll) * 19;
-            String option = options.get(i);
+            String option = visibleOptions.get(i);
             g.fill(left, y, left + 300, y + 18, option.equals(current) ? 0xFF495D40 : 0xFF353535);
             g.text(font, font.plainSubstrByWidth(option, 288), left + 5, y + 5, 0xFFFFFFFF);
         }
+        if (visibleOptions.isEmpty()) g.centeredText(font,
+                kind == Kind.CRATE ? "No matching crates" : "No matching groups", width / 2, 74, 0xFFCCCCCC);
         super.extractRenderState(g, mx, my, delta);
     }
 
@@ -72,14 +91,14 @@ public final class FilterOptionScreen extends Screen {
         if (super.mouseClicked(e, dbl)) return true;
         int row = (int)(e.y() - 70) / 19;
         int index = scroll + row;
-        if (e.x() >= left && e.x() < left + 300 && e.y() >= 70 && row >= 0 && row < rows && index < options.size()) {
-            select(options.get(index)); return true;
+        if (e.x() >= left && e.x() < left + 300 && e.y() >= 70 && row >= 0 && row < rows && index < visibleOptions.size()) {
+            select(visibleOptions.get(index)); return true;
         }
         return false;
     }
 
     @Override public boolean mouseScrolled(double x, double y, double h, double v) {
-        scroll = Math.max(0, Math.min(Math.max(0, options.size() - rows), scroll - (int)Math.signum(v)));
+        scroll = Math.max(0, Math.min(Math.max(0, visibleOptions.size() - rows), scroll - (int)Math.signum(v)));
         return true;
     }
 }

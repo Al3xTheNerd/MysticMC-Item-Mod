@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,7 +52,7 @@ public final class ItemDatabase {
         this.items = List.copyOf(all);
         for (JsonElement element : array(original, "tags")) if (element.isJsonPrimitive()) tagSet.add(TextRepair.fix(element.getAsString()));
         this.tags = tagSet.stream().filter(s -> !s.isBlank()).sorted(String.CASE_INSENSITIVE_ORDER).toList();
-        this.crates = names(crateList, "CrateName");
+        this.crates = crateNamesById(crateList);
         this.groups = names(groupList, "GroupName");
     }
 
@@ -75,5 +76,12 @@ public final class ItemDatabase {
         List<String> names = new ArrayList<>();
         for (JsonElement element : array) if (element.isJsonObject()) names.add(TextRepair.fix(ItemEntry.string(element.getAsJsonObject(), field)));
         return List.copyOf(names);
+    }
+
+    private static List<String> crateNamesById(JsonArray array) {
+        List<JsonObject> crates = new ArrayList<>();
+        for (JsonElement element : array) if (element.isJsonObject()) crates.add(element.getAsJsonObject());
+        crates.sort(Comparator.comparingInt(crate -> ItemEntry.number(crate, "id")));
+        return crates.stream().map(crate -> TextRepair.fix(ItemEntry.string(crate, "CrateName"))).toList();
     }
 }
