@@ -14,6 +14,7 @@ public final class ItemEntry {
     public final int id;
     public final String name;
     public final String minecraftId;
+    public final String executableItemId;
     public final String notes;
     public final String itemHuman;
     public final String rarity;
@@ -33,16 +34,26 @@ public final class ItemEntry {
         this.groupName = group == null ? "" : TextRepair.fix(string(group, miscellaneous ? "GroupName" : "CrateName"));
         this.urlTag = group == null ? "" : string(group, "URLTag");
         String itemId = "";
+        String eiId = "";
         String instrument = "";
         try {
             JsonObject parsed = JsonParser.parseString(string(original, "RawData")).getAsJsonObject();
             itemId = string(parsed, "id");
-            String instrumentId = string(parsed.getAsJsonObject("components"), "minecraft:instrument");
+            JsonObject components = parsed.getAsJsonObject("components");
+            String instrumentId = string(components, "minecraft:instrument");
             if (!instrumentId.isEmpty()) {
                 instrument = instrumentId.substring(instrumentId.indexOf(':') + 1).replace('_', ' ');
             }
+            if (components != null) {
+                JsonObject customData = components.getAsJsonObject("minecraft:custom_data");
+                if (customData != null) {
+                    JsonObject bukkitValues = customData.getAsJsonObject("PublicBukkitValues");
+                    eiId = string(bukkitValues, "executableitems:ei-id");
+                }
+            }
         } catch (RuntimeException ignored) { }
         this.minecraftId = itemId;
+        this.executableItemId = eiId;
         List<String> found = new ArrayList<>();
         if (!miscellaneous) for (String field : TAG_FIELDS) {
             String value = TextRepair.fix(string(original, field)).trim();

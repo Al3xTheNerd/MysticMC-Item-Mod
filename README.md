@@ -24,7 +24,7 @@ You can either press `Preview` in the `/itemlist` menu, or you can run `/itemlis
 
 ## /whatisthat
 
-This command will tell you what the 'base item' of any custom item is. Not very useful for the majority of people, but very helpful for staff members of the server.
+This command shows an item's name, base Minecraft item, ExecutableItems ID, type (Item or Miscellaneous Item), and database ID. Click the name, base item, or ExecutableItems ID to copy it; click the database ID to open the item page. If an item has no ExecutableItems ID, the command shows `N/A`.
 
 ## In Chat Previews
 

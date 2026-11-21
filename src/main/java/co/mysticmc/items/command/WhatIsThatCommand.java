@@ -7,14 +7,19 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 
-import java.util.LinkedHashMap;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
-/** Looks up the Minecraft registry ID behind a MysticMC catalog name. */
+/** Looks up catalog details for a MysticMC item name. */
 public final class WhatIsThatCommand {
     private WhatIsThatCommand() {}
 
@@ -66,15 +71,43 @@ public final class WhatIsThatCommand {
                     + ". Use Tab or enter the full name."));
             return 0;
         }
-        Map<String, ItemEntry> ids = new LinkedHashMap<>();
-        for (ItemEntry entry : matches) ids.putIfAbsent(entry.minecraftId, entry);
-        source.sendFeedback(Component.literal(cleanName(matches.getFirst().name) + ": "
-                + (ids.size() == 1 ? "Minecraft item ID" : ids.size() + " Minecraft item IDs")));
-        for (ItemEntry entry : ids.values()) {
-            source.sendFeedback(Component.literal("  " + (entry.minecraftId.isBlank() ? "unknown" : entry.minecraftId)
-                    + " (catalog " + (entry.miscellaneous ? "misc" : "crate") + " #" + entry.id + ")"));
+        for (ItemEntry entry : matches) {
+            for (Component line : details(entry)) source.sendFeedback(line);
         }
         return 1;
+    }
+
+    static List<Component> details(ItemEntry entry) {
+        URI siteUri = siteUri(entry);
+        return List.of(
+                copyLine("Item Name: ", ChatFormatting.AQUA, entry.name),
+                copyLine("Base Item: ", ChatFormatting.GOLD, entry.minecraftId),
+                copyLine("ei-id: ", ChatFormatting.LIGHT_PURPLE, entry.executableItemId),
+                line("Type: ", ChatFormatting.GREEN, entry.miscellaneous ? "Miscellaneous Item" : "Item", null, null),
+                line("Database ID: ", ChatFormatting.YELLOW, Integer.toString(entry.id),
+                        siteUri == null ? null : new ClickEvent.OpenUrl(siteUri), "Open item page"));
+    }
+
+    private static Component copyLine(String label, ChatFormatting color, String value) {
+        return line(label, color, value.isBlank() ? "N/A" : value,
+                value.isBlank() ? null : new ClickEvent.CopyToClipboard(value), "Copy to clipboard");
+    }
+
+    private static Component line(String label, ChatFormatting color, String value, ClickEvent click, String hint) {
+        MutableComponent result = Component.literal(label).withStyle(color);
+        MutableComponent valueText = Component.literal(value).withStyle(ChatFormatting.WHITE);
+        if (click != null) valueText.withStyle(style -> style.withUnderlined(true).withClickEvent(click)
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal(hint))));
+        return result.append(valueText);
+    }
+
+    static URI siteUri(ItemEntry entry) {
+        if (entry.miscellaneous) {
+            if (entry.urlTag.isBlank()) return null;
+            return URI.create("https://items.mysticmc.co/miscitems/group/"
+                    + URLEncoder.encode(entry.urlTag, StandardCharsets.UTF_8).replace("+", "%20"));
+        }
+        return entry.id < 0 ? null : URI.create("https://items.mysticmc.co/items/item/" + entry.id);
     }
 
     static List<ItemEntry> matches(List<ItemEntry> items, String needle) {
